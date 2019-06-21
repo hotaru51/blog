@@ -1,0 +1,14 @@
+---
+layout: post
+title: リアルタイムにgrepする
+date: 2018-03-14 23:33:46.000000000 +00:00
+type: post
+categories:
+- Linux
+tags:
+- command
+permalink: "/2018/03/line-buffered-grep/"
+---
+<p>たまにやりたくなるけど小技だけど、いつもオプションを忘れてしまうのでメモ。ログ等を任意の文字列で絞り込みながらtailしたいときは、<code>--line-buffered</code>をつけてgrepする。</p>
+<pre><code class="language-bash">tail -f LOG_FILE | grep --line-buffered 'hoge'
+</code></pre>

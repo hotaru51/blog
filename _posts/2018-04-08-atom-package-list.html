@@ -1,0 +1,25 @@
+---
+layout: post
+title: Atomのプラグインをリストからインストール
+date: 2018-04-08 16:39:17.000000000 +00:00
+type: post
+categories:
+- Software
+tags:
+- Atom
+- Editor
+permalink: "/2018/04/atom-package-list/"
+---
+<p>メモするまでもないかと思ったけど、やろうとして思い出せなかったのでメモ。<br />
+インストールしているAtomのプラグインのリストを吐き出して、そのリストを元に別のマシンのAtomに同じプラグインをインストールする。</p>
+<p><!--more--></p>
+<p>まずはリストを吐き出したいマシン上で以下のコマンドを実行。こちらはWindowsだったのでコマンドプロンプト。</p>
+<pre><code class="language-bat">apm list --installed --bare &gt; atom_package.txt
+</code></pre>
+<p>吐き出したリストをインストール先のマシンに移動して、以下のコマンドを実行するとまとめてインストールされる。こちらはMac上で実行</p>
+<pre><code class="language-bash">apm install --packages-file atom_package.txt 
+Installing ex-mode@0.18.0 to /Users/&lt;ユーザ名&gt;/.atom/packages ✓
+Installing monokai@0.24.0 to /Users/&lt;ユーザ名&gt;/.atom/packages ✓
+Installing vim-mode-plus@1.30.1 to /Users/&lt;ユーザ名&gt;/.atom/packages ✓
+</code></pre>
+<p>ただ、GitHub経由で設定を同期する機能があるらしいので、ちゃんと使うならそっちで設定した方がいいんだろうなぁ、と…</p>

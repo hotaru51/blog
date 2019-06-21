@@ -1,0 +1,128 @@
+---
+layout: post
+title: CoreOSでDockerする
+date: 2018-04-01 22:42:46.000000000 +00:00
+type: post
+categories:
+- Linux
+tags:
+- Docker
+- Vagrant
+permalink: "/2018/04/coreos-docker/"
+---
+<p>触ろうと思ってずっとできていなかったDockerにやっと手を付けることができて、先にWindows環境で試した手順をMacでもやってみたらそのままできたのでその記録。</p>
+<p><!--more--></p>
+<p>Windows上で行った構築手順は、</p>
+<ol>
+<li>VirtualBoxインストール</li>
+<li>Vagrantインストール</li>
+<li>CoreOSの取得、起動</li>
+<li>Ubuntuのイメージをpullしてコンテナ起動</li>
+</ol>
+<p>といった感じ。</p>
+<p>VirtualBoxとVagrantのインストールはインストーラに従って適当にやれば問題なく入るはずなので今回は触れません。</p>
+<h2>CoreOSの取得、起動</h2>
+<p>適当なディレクトリでCoreOSのVagrantfileをcloneする。</p>
+<pre><code class="language-bash">mkdir ~/vm
+cd ~/vm
+git clone https://github.com/coreos/coreos-vagrant
+Cloning into 'coreos-vagrant'...
+remote: Counting objects: 479, done.
+remote: Total 479 (delta 0), reused 0 (delta 0), pack-reused 479
+Receiving objects: 100% (479/479), 128.31 KiB | 448.00 KiB/s, done.
+Resolving deltas: 100% (212/212), done.
+</code></pre>
+<p>Vagrantfileを取得できたら、<code>vagratn up</code>でCoreOSを立ち上げる。</p>
+<pre><code class="language-bash">cd coreos-vagrant
+vagrant up
+Installing plugins: vagrant-ignition
+Installing the 'vagrant-ignition' plugin. This can take a few minutes...
+Fetching: vagrant-ignition-0.0.3.gem (100%)
+Installed the plugin 'vagrant-ignition (0.0.3)'!
+Bringing machine 'core-01' up with 'virtualbox' provider...
+==&gt; core-01: Box 'coreos-alpha' could not be found. Attempting to find and install...
+    core-01: Box Provider: virtualbox
+    core-01: Box Version: &gt;= 0
+==&gt; core-01: Loading metadata for box 'https://alpha.release.core-os.net/amd64-usr/current/coreos_production_vagrant_virtualbox.json'
+    core-01: URL: https://alpha.release.core-os.net/amd64-usr/current/coreos_production_vagrant_virtualbox.json
+==&gt; core-01: Adding box 'coreos-alpha' (v1729.0.0) for provider: virtualbox
+    core-01: Downloading: https://alpha.release.core-os.net/amd64-usr/1729.0.0/coreos_production_vagrant_virtualbox.box
+    core-01: Calculating and comparing box checksum...
+==&gt; core-01: Successfully added box 'coreos-alpha' (v1729.0.0) for 'virtualbox'!
+==&gt; core-01: Importing base box 'coreos-alpha'...
+==&gt; core-01: Configuring Ignition Config Drive
+==&gt; core-01: Matching MAC address for NAT networking...
+==&gt; core-01: Checking if box 'coreos-alpha' is up to date...
+==&gt; core-01: Setting the name of the VM: coreos-vagrant_core-01_1522585344074_43791
+==&gt; core-01: Clearing any previously set network interfaces...
+==&gt; core-01: Preparing network interfaces based on configuration...
+    core-01: Adapter 1: nat
+    core-01: Adapter 2: hostonly
+==&gt; core-01: Forwarding ports...
+    core-01: 22 (guest) =&gt; 2222 (host) (adapter 1)
+==&gt; core-01: Running 'pre-boot' VM customizations...
+==&gt; core-01: Booting VM...
+==&gt; core-01: Waiting for machine to boot. This may take a few minutes...
+    core-01: SSH address: 127.0.0.1:2222
+    core-01: SSH username: core
+    core-01: SSH auth method: private key
+==&gt; core-01: Machine booted and ready!
+==&gt; core-01: Setting hostname...
+==&gt; core-01: Configuring and enabling network interfaces...
+</code></pre>
+<p>問題なく起動したら、<code>vagrant ssh</code>でCoreOSにログインする。</p>
+<pre><code class="language-bash">vagrant ssh
+Last login: Sun Apr  1 12:22:50 UTC 2018 from 10.0.2.2 on ssh
+Container Linux by CoreOS alpha (1729.0.0)
+core@core-01 ~ $
+</code></pre>
+<p>CoreOS上にすでにDockerが入っているので、あとはUbuntuのコンテナイメージをpullして起動するだけ。</p>
+<pre><code class="language-bash"># Docker Hubからコンテナイメージ取得
+docker pull ubuntu
+Using default tag: latest
+latest: Pulling from library/ubuntu
+22dc81ace0ea: Pull complete
+1a8b3c87dba3: Pull complete
+91390a1c435a: Pull complete
+07844b14977e: Pull complete
+b78396653dae: Pull complete
+Digest: sha256:e348fbbea0e0a0e73ab0370de151e7800684445c509d46195aef73e090a49bd6
+Status: Downloaded newer image for ubuntu:latest
+# コンテナ起動、Ubuntuコンテナに入る
+docker run -it ubuntu
+root@4c4fc6fde035:/#
+</code></pre>
+<p>これでおしまい。これだけならあっという終わる。実際はVagrantfileを弄ってディレクトリ共有の設定とかメモリ割当とか確認するべきなんだろうけど…<br />
+ちなみにコンテナから普通に<code>&lt;C-d&gt;</code>とか<code>exit</code>とかで抜けてしまうとコンテナが終了してしまうので、コンテナを終了させないように一時的に抜ける時は、<code>&lt;C-p&gt; → &lt;C-q&gt;</code>と入力する。</p>
+<pre><code class="language-bash"># コンテナ起動
+core@core-01 ~ $ docker run -it ubuntu
+
+# &lt;C-p&gt; → &lt;C-q&gt;でコンテナから抜ける
+root@ef9f0e7d761c:/# core@core-01 ~ $ 
+
+# docker psでコンテナが起動したままであることを確認
+core@core-01 ~ $ docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+ef9f0e7d761c        ubuntu              "/bin/bash"         19 seconds ago      Up 17 seconds                           loving_easley
+
+# 再びコンテナに入る
+core@core-01 ~ $ docker attach ef9f0e7d761c
+
+# exitで抜ける
+root@ef9f0e7d761c:/# exit
+exit
+core@core-01 ~ $ 
+
+# コンテナが終了している
+core@core-01 ~ $ docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+</code></pre>
+<h2>まとめ</h2>
+<p>入門する前までは複雑で難しそうなイメージがあったけど、ひとまずコンテナを立ち上げてみるところまではすんなりできた。これからディレクトリ同期の設定したり、コンテナイメージを作り込んでいくとなるとハマるときがくるのかもしれないけど…<br />
+そして今使っているMacがAirの11インチ(メモリ4GB)なので、もう少しメモリに余裕のあるモデルに買い替えたい。廉価版MacBookが6月に発表されるかも、という噂もあるので、もし出たら買い換えようか…</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://qiita.com/mikoski01/items/7ed36ac9e402658bb93e" rel="noopener" target="_blank">VirtualBox+Vagrantで楽々Docker環境構築（Windows）</a></li>
+<li><a href="https://qiita.com/insight3110/items/03a41b2aaa6deb8d4c7f" rel="noopener" target="_blank">Windows環境でVagrant+CoreOS+Dockerをセットアップして共有フォルダ上でMeteorが走るまで</a></li>
+<li><a href="https://qiita.com/kooohei/items/0e788a2ce8c30f9dba53" rel="noopener" target="_blank">Dockerコンテナの作成、起動〜停止まで</a></li>
+</ul>
