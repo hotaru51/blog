@@ -3,28 +3,15 @@ layout: post
 title: Let’s encryptの証明書自動更新
 date: 2018-03-17 12:53:00.000000000 +00:00
 type: post
-parent_id: '0'
-published: true
-password: ''
-status: publish
 categories:
 - Software
 tags:
 - certbot
 - cron
 - ShellScript
-meta:
-  _wpcom_is_markdown: '1'
-  _edit_last: '2'
-author:
-  login: htr51wp
-  email: htr.5134.kkr@outlook.jp
-  display_name: ほたる
-  first_name: ほたる
-  last_name: ''
 permalink: "/2018/03/letsencrypt-renew/"
 ---
-<p><a href="https://blog.hotaru51.com/2018/03/letsencrypt-ssl/">前回</a>Let’s encryptで取得したSSL証明書は、有効期限が90日と短い。自動で更新する仕組みを作っておかないと、確実に忘れて証明書の期限が切れ、ブラウザにおこられるというかっこ悪いことになるので、自動更新を仕込んでおく。</p>
+<p><a href="{% post_url 2018-03-17-letsencrypt-ssl %}">前回</a>Let’s encryptで取得したSSL証明書は、有効期限が90日と短い。自動で更新する仕組みを作っておかないと、確実に忘れて証明書の期限が切れ、ブラウザにおこられるというかっこ悪いことになるので、自動更新を仕込んでおく。</p>
 <p><!--more--><br />
 certbotでの証明書の更新は、使用しているWebサーバかcertbotが自前で持ってるWebサーバの機能で認証用のファイルを公開し、そのファイルを認証局が見に来る、という仕組みなので、<code>--standalone</code>で証明書を取得した場合は証明書更新時に一旦Webサーバを停止してから更新を行わないと、certbotのWebサーバと使用ポートが重複してしまい、更新ができない。</p>
 <p>まずは正常に更新ができるかテストするため、<code>--dry-run</code>でコマンドを打って試してみる。<code>--pre-hook</code>オプションで証明書更新前にApacheを停止させ、<code>--renew-hook</code>オプションで証明書更新完了後にApacheを再起動させている。</p>
