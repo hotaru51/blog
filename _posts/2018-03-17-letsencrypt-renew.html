@@ -11,7 +11,7 @@ tags:
 - ShellScript
 permalink: "/2018/03/letsencrypt-renew/"
 ---
-<p><a href="{% post_url 2018-03-17-letsencrypt-ssl %}">前回</a>Let’s encryptで取得したSSL証明書は、有効期限が90日と短い。自動で更新する仕組みを作っておかないと、確実に忘れて証明書の期限が切れ、ブラウザにおこられるというかっこ悪いことになるので、自動更新を仕込んでおく。</p>
+<p><a href="{{ site.baseurl }}{% post_url 2018-03-17-letsencrypt-ssl %}">前回</a>Let’s encryptで取得したSSL証明書は、有効期限が90日と短い。自動で更新する仕組みを作っておかないと、確実に忘れて証明書の期限が切れ、ブラウザにおこられるというかっこ悪いことになるので、自動更新を仕込んでおく。</p>
 <p><!--more--><br />
 certbotでの証明書の更新は、使用しているWebサーバかcertbotが自前で持ってるWebサーバの機能で認証用のファイルを公開し、そのファイルを認証局が見に来る、という仕組みなので、<code>--standalone</code>で証明書を取得した場合は証明書更新時に一旦Webサーバを停止してから更新を行わないと、certbotのWebサーバと使用ポートが重複してしまい、更新ができない。</p>
 <p>まずは正常に更新ができるかテストするため、<code>--dry-run</code>でコマンドを打って試してみる。<code>--pre-hook</code>オプションで証明書更新前にApacheを停止させ、<code>--renew-hook</code>オプションで証明書更新完了後にApacheを再起動させている。</p>
