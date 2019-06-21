@@ -1,0 +1,131 @@
+---
+layout: post
+title: Let's encryptでWordPressをSSL化
+date: 2018-03-17 00:46:08.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- Software
+tags:
+- Apache
+- certbot
+- Debian
+- GCP
+meta:
+  _wpcom_is_markdown: '1'
+  _edit_last: '2'
+  _oembed_729f324b339f3367549200ecbc4e217a: "{{unknown}}"
+  _wp_old_slug: lets-encrypt%e3%81%a7wordpress%e3%82%92ssl%e5%8c%96
+author:
+  login: htr51wp
+  email: htr.5134.kkr@outlook.jp
+  display_name: ほたる
+  first_name: ほたる
+  last_name: ''
+permalink: "/2018/03/letsencrypt-ssl/"
+---
+<p>GCPのCloudLauncherで構築したWordPressをLet's encryptでSSL化した。</p>
+<p><!--more--></p>
+<h2>環境</h2>
+<p>Debian 8 (Jessis)<br />
+Aapache 2.4</p>
+<h2>certbotインストール</h2>
+<p>証明書の取得に使用するcertbotをインストール。<br />
+今回はJessie backportsリポジトリを追加し、aptで入れた。</p>
+<pre><code class="language-bash">vi /etc/apt/sources.list
+</code></pre>
+<p>以下の行を追加。</p>
+<pre><code class="language-bash">deb http://ftp.debian.org/debian jessie-backports main
+</code></pre>
+<p>パッケージリストを更新してインストール。</p>
+<pre><code class="language-bash">apt update
+apt -t jessie-backports install certbot
+</code></pre>
+<h2>証明書取得</h2>
+<p>WebサーバはApacheなので、コマンド一発で証明書取得と設定までやってくれるが、元々入ってる設定を下手にいじられるとめんどくさそうなので、<code>--standalone</code>で証明書だけ取得してWebサーバの設定は自分で入れることにする。</p>
+<pre><code class="language-bash">certbot certonly --standalone
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Enter email address (used for urgent renewal and security notices) (Enter 'c' to
+cancel):xxxxx@hoge.com  # メールアドレス入力
+Starting new HTTPS connection (1): acme-v01.api.letsencrypt.org
+
+-------------------------------------------------------------------------------
+Please read the Terms of Service at
+https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf. You must
+agree in order to register with the ACME server at
+https://acme-v01.api.letsencrypt.org/directory
+-------------------------------------------------------------------------------
+(A)gree/(C)ancel: A  # 規約同意
+Please enter in your domain name(s) (comma and/or space separated)  (Enter 'c'
+to cancel):www.testsite.com  # 証明書を発行するドメイン
+Obtaining a new certificate
+Performing the following challenges:
+http-01 challenge for www.testsite.com
+Waiting for verification...
+Cleaning up challenges
+Generating key (2048 bits): /etc/letsencrypt/keys/0000_key-certbot.pem
+Creating CSR: /etc/letsencrypt/csr/0000_csr-certbot.pem
+
+IMPORTANT NOTES:
+ - Congratulations! Your certificate and chain have been saved at
+   /etc/letsencrypt/live/www.testsite.com/fullchain.pem. Your cert
+   will expire on 2018-06-05. To obtain a new or tweaked version of
+   this certificate in the future, simply run certbot again. To
+   non-interactively renew *all* of your certificates, run "certbot
+   renew"
+ - If you like Certbot, please consider supporting our work by:
+
+   Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+   Donating to EFF:                    https://eff.org/donate-le
+</code></pre>
+<p>取得した証明書は<code>/etc/letsencrypt/live/ドメイン名</code>配下に保存される。<br />
+ちなみに、こんな感じでシンボリックリンクだったりする。</p>
+<pre><code class="language-bash">ls -l /etc/letsencrypt/live/www.testsite.com
+total 4
+lrwxrwxrwx 1 root root  41 Mar  7 14:32 cert.pem -&gt; ../../archive/www.testsite.com/cert1.pem
+lrwxrwxrwx 1 root root  42 Mar  7 14:32 chain.pem -&gt; ../../archive/www.testsite.com/chain1.pem
+lrwxrwxrwx 1 root root  46 Mar  7 14:32 fullchain.pem -&gt; ../../archive/www.testsite.com/fullchain1.pem
+lrwxrwxrwx 1 root root  44 Mar  7 14:32 privkey.pem -&gt; ../../archive/www.testsite.com/privkey1.pem
+-rw-r--r-- 1 root root 543 Mar  7 14:32 README
+</code></pre>
+<h2>Apache設定</h2>
+<p>取得した証明書の設定と、httpに来たアクセスをhttpsにリダイレクトさせる設定を入れる。</p>
+<pre><code class="language-bash">cd /etc/apache2
+cp -p site-available/wordpress.conf site-avairable/wordpress.conf.`date '+%Y%m%d'`
+vi site-available/wordpress.conf
+
+&lt;VirtualHost *:80&gt;
+  ServerName  www.testsite.com
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine  on
+    RewriteCond    %{HTTPS} off
+    RewriteRule    ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R,L]
+  &lt;/IfModule&gt;
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:443&gt;
+  ServerName  www.testsite.com
+  ServerAdmin webmaster@localhost
+  DocumentRoot /var/www/html
+  SSLCertificateFile /etc/letsencrypt/live/www.testsite.com/cert.pem
+  SSLCertificateKeyFile /etc/letsencrypt/live/www.testsite.com/privkey.pem
+  SSLCertificateChainFile /etc/letsencrypt/live/www.testsite.com/chain.pem
+
+  # (以下略)
+</code></pre>
+<p>ここまで来たらApache起動…　と思ったけど、ssl_moduleが有効になっていなかったので、<code>/etc/apache2/mods-available</code>配下に入っている設定ファイルから必要なものを探して、<code>mods-enabled</code>内にシンボリックリンクを貼る。</p>
+<pre><code class="language-bash">cd /etc/apache2/mods-enabled
+ln -s ../mods-available/ssl.load ssl.load
+ln -s ../mods-available/ssl.conf ssl.conf
+ln -s ../mods-available/socache_shmcb.load socache_shmcb.load
+</code></pre>
+<p>Apache起動。</p>
+<pre><code class="language-bash">service apache2 start
+</code></pre>
+<p>ブラウザでアクセスして、httpの場合はhttpsのURLにリダイレクトされること、ブラウザにおこられずにhttpsでアクセスできていることを確認。</p>
+<h2>まとめ</h2>
+<p>コマンドさえ分かってしまえば証明書の取得自体はとっても簡単。Apacheの設定の方がめんどくさいくらい。なんだかんだApache使う機会は多いので、もう少しお勉強したい…</p>
+<p>ちなみにこのままだと証明書の自動更新ができないので、cron仕掛けたりしないといけないけど、この話は別の記事で。</p>

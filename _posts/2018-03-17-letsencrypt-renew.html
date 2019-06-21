@@ -1,0 +1,86 @@
+---
+layout: post
+title: Let’s encryptの証明書自動更新
+date: 2018-03-17 12:53:00.000000000 +00:00
+type: post
+parent_id: '0'
+published: true
+password: ''
+status: publish
+categories:
+- Software
+tags:
+- certbot
+- cron
+- ShellScript
+meta:
+  _wpcom_is_markdown: '1'
+  _edit_last: '2'
+author:
+  login: htr51wp
+  email: htr.5134.kkr@outlook.jp
+  display_name: ほたる
+  first_name: ほたる
+  last_name: ''
+permalink: "/2018/03/letsencrypt-renew/"
+---
+<p><a href="https://blog.hotaru51.com/2018/03/letsencrypt-ssl/">前回</a>Let’s encryptで取得したSSL証明書は、有効期限が90日と短い。自動で更新する仕組みを作っておかないと、確実に忘れて証明書の期限が切れ、ブラウザにおこられるというかっこ悪いことになるので、自動更新を仕込んでおく。</p>
+<p><!--more--><br />
+certbotでの証明書の更新は、使用しているWebサーバかcertbotが自前で持ってるWebサーバの機能で認証用のファイルを公開し、そのファイルを認証局が見に来る、という仕組みなので、<code>--standalone</code>で証明書を取得した場合は証明書更新時に一旦Webサーバを停止してから更新を行わないと、certbotのWebサーバと使用ポートが重複してしまい、更新ができない。</p>
+<p>まずは正常に更新ができるかテストするため、<code>--dry-run</code>でコマンドを打って試してみる。<code>--pre-hook</code>オプションで証明書更新前にApacheを停止させ、<code>--renew-hook</code>オプションで証明書更新完了後にApacheを再起動させている。</p>
+<pre><code class="language-bash">certbot --dry-run renew --pre-hook 'service apache2 stop' --renew-hook 'service apache2 start'
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+-------------------------------------------------------------------------------
+Processing /etc/letsencrypt/renewal/www.testsite.com.conf
+-------------------------------------------------------------------------------
+Cert not due for renewal, but simulating renewal for dry run
+Starting new HTTPS connection (1): acme-staging.api.letsencrypt.org
+Running pre-hook command: service apache2 stop
+Renewing an existing certificate
+Performing the following challenges:
+http-01 challenge for www.testsite.com
+Waiting for verification...
+Cleaning up challenges
+Generating key (2048 bits): /etc/letsencrypt/keys/0002_key-certbot.pem
+Creating CSR: /etc/letsencrypt/csr/0002_csr-certbot.pem
+Dry run: skipping renewal hook command: service apache2 start
+** DRY RUN: simulating 'certbot renew' close to cert expiry
+**          (The test certificates below have not been saved.)
+
+Congratulations, all renewals succeeded. The following certs have been renewed:
+  /etc/letsencrypt/live/www.testsite.com/fullchain.pem (success)
+** DRY RUN: simulating 'certbot renew' close to cert expiry
+**
+</code></pre>
+<p><code>Congratulations, all renewals succeeded.</code>と出力されているので、どうやら大丈夫っぽい。ちなみに、<code>--dry-run</code>時は<code>--renew-hook</code>のコマンドが実行されないので、検証後は手動でApacheの再起動を行うこと。</p>
+<p>証明書の取得ができそうな感じなので、あとはシェルスクリプトを書いて、cronを仕掛けるだけ。</p>
+<pre><code class="language-bash">mkdir /usr/local/scripts
+vi /usr/local/scripts/certbot_renew.sh
+</code></pre>
+<p>スクリプトはこんな感じ。正直、スクリプトにする必要もないかもしれない。</p>
+<pre><code class="language-bash">#!/bin/sh
+export LANG=C
+export PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+certbot renew --pre-hook 'service apache2 stop' --renew-hook 'service apache2 start'
+</code></pre>
+<p>cronを設定して完了。</p>
+<pre><code class="language-bash">0 */12 * * * root /usr/local/scripts/certbot_renew.sh
+</code></pre>
+<p>ちなみに<code>/etc/cron.d</code>内をのぞくと、すでにこんな感じの設定が入っていたりするけど…</p>
+<pre><code class="language-bash"># /etc/cron.d/certbot: crontab entries for the certbot package
+#
+# Upstream recommends attempting renewal twice a day
+#
+# Eventually, this will be an opportunity to validate certificates
+# haven't been revoked, etc.  Renewal will only occur if expiration
+# is within 30 days.
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+0 */12 * * * root test -x /usr/bin/certbot -a \! -d /run/systemd/system &amp;&amp; perl -e 'sleep int(rand(3600))' &amp;&amp; certbot -q renew
+</code></pre>
+<p>Apache止めなくちゃいけないことを考えるとこのままでは動かないので、捨てるなりコメントアウトしとくなりして無効化しておく。</p>
+<h2>まとめ</h2>
+<p>この設定を入れた時点ではまだ証明書更新時期になっていないので、ちゃんと動くかどうかはまだわからない…　多分大丈夫だとは思うけど。自動更新うまくいかなかったら修正しよう。</p>
