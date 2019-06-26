@@ -4,7 +4,7 @@ email:
 description: > # this means to ignore newlines until "baseurl:"
   技術ネタの備忘録とか日常とか
 baseurl: "/blog" # the subpath of your site, e.g. /blog/
-url: "https://hotaru51.github.io" # the base hostname & protocol for your site
+url: "https://www.hotaru51.com" # the base hostname & protocol for your site
 twitter_username: htr_szkn51
 github_username: hotaru51
 
