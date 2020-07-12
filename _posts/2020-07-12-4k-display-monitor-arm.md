@@ -1,7 +1,7 @@
 ---
 layout: post
 title: モニタアームと4Kディスプレイがとても良かった話
-date: 2020-06-12 18:06:00
+date: 2020-07-12 18:06:00
 type: post
 categories:
 - Diary
